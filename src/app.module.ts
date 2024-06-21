@@ -15,6 +15,10 @@ import { FilesModule } from './files/files.module';
 import {ServeStaticModule} from "@nestjs/serve-static";
 import * as path from 'path';
 import { Token } from './auth/token.model';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { PugAdapter } from '@nestjs-modules/mailer/dist/adapters/pug.adapter';
+
+// import { MailerModule } from './mailer/mailer.module';
 
 // Добавляем декоратор @Module
 // Декоратор - это обертка, которая добавляет классу или функции новый функционал
@@ -39,7 +43,7 @@ import { Token } from './auth/token.model';
         }),
         ServeStaticModule.forRoot({
           rootPath: path.resolve( __dirname, 'static'),
-      }),
+        }),
       // Подключение к БД, перед этим устанавливаем Sequelize - npm install --save-dev @types/sequelize
         SequelizeModule.forRoot({
           dialect: 'mysql',
@@ -54,6 +58,30 @@ import { Token } from './auth/token.model';
           // Чтобы Sequelize создавал таблицы в БД на основе моих моделей
           autoLoadModels: true
         }),
+        MailerModule.forRoot({
+          transport: {
+            host: process.env.SMTP_HOST,
+            port: 587,
+            // ignoreTLS: true,
+            secure: false,
+            auth: {
+              user: process.env.SMTP_USER,
+              pass: process.env.SMTP_PASSWORD,
+            },
+          },
+          defaults: {
+            from: '"nest-modules" <modules@nestjs.com>',
+          },
+          preview: true,
+          template: {
+            dir: __dirname + '/templates',
+            adapter: new PugAdapter(),
+            options: {
+              strict: true,
+            },
+          },
+        }),
+        
         // npm i -g @nestjs/cli - суета, которая позволяет автоматически генерировать модули
         // для этого необходимо ввести команду nest generate module users
         // Модуль автоматически добавляется внизу
@@ -61,9 +89,9 @@ import { Token } from './auth/token.model';
         RolesModule,
         AuthModule, 
         PostsModule,
-        FilesModule
+        FilesModule,
         
-      ]
+    ]
 })
 export class AppModule {}
 

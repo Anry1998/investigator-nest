@@ -6,4 +6,4 @@ export class CreateRoleDto {
     readonly value: string
     @ApiProperty({example: 'Aa12345', description: 'ПОписание роли'})
     readonly description: string
-}
+}  

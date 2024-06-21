@@ -7,6 +7,9 @@ import { RolesService } from 'src/roles/roles.service';
 import { AddRoleDto } from './dto/add-role.dto';
 import { BanUserDto } from './dto/ban-user.dto';
 import { CreateRoleDto } from 'src/roles/dto/create-role.dto';
+import { Op } from 'sequelize';
+
+import * as bcrypt from 'bcrypt'
 
 // Чтобы клас стал провайдером, необходимо пометить его @Injectable(), поскольку в дальнейшем сервис будет внедряться в контроллер
 // Контроллер должен быть максимально простым, без логики, он лиш получает запрос и отдает ответ
@@ -32,7 +35,7 @@ export class UsersService {
         // Поскольку изначально у пользователя ролей нет, указываем массив, в котором добавляем один единственный id из role
         await user.$set('roles', [role.id])
         user.roles = [role]
-
+ 
         
 
         return user
@@ -49,16 +52,13 @@ export class UsersService {
             },
             
         })
-
         return shortUser
-
     }
 
     async getAllUsers() {
         // {include: {all: true} - добавляем в запрос все поля с которыми как-то связан пользовактель, однако можно указать и конкретную таблицу
         const users = await this.userRepository.findAll({include: {all: true}})
         return users
-
     }
 
     async getUserByEmail(email: string) {
@@ -73,7 +73,28 @@ export class UsersService {
             await user.$add('role', role.id)
             return dto
         }
-        throw new HttpException('Пользователь или пароль не найдены', HttpStatus.NOT_FOUND)
+        throw new HttpException('Пользователь или роль не найдены', HttpStatus.NOT_FOUND)
+    }
+
+    async delateRole(dto: AddRoleDto) {
+        const user = await this.userRepository.findByPk(dto.userId)
+        const role = await this.roleService.getRoleByValue(dto.value)
+        if (user && role) {
+            await user.$remove('role', role.id)
+            return dto
+        }
+        throw new HttpException('Пользователь или роль не найдены', HttpStatus.NOT_FOUND)
+    }
+
+
+    async activate(activationLink: string) {
+        const user = await this.userRepository.findOne({where: {activationLink}})
+        if (!user) {
+            throw new HttpException(`Некорректная ссылка активации`, HttpStatus.BAD_REQUEST)
+        }
+        user.isActivated = true
+        await user.save()
+        return user
     }
 
     async ban(dto: BanUserDto) {
@@ -94,10 +115,20 @@ export class UsersService {
         return deleteUser 
     }
 
-    async restoreUser(userId: string) {
+    async restoreUser(dto: CreateUserDto) {
+
         const restoreUser =  await this.userRepository.restore({
-            where: {id: userId},
+            where: {email: dto.email},
         })
+        const user = await this.getUserByEmail(dto.email)
+        if (!user) {
+            throw new HttpException(`Пользователь с таким email: ${dto.email} не был найден`, HttpStatus.BAD_REQUEST)
+        }
+        const isPassEquals = await bcrypt.compare(dto.password, user.password)
+        if (!isPassEquals) {
+            await this.userRepository.destroy({where: {email: dto.email}})
+            throw new HttpException(`Введен неверный пароль`, HttpStatus.BAD_REQUEST)
+        }
         return restoreUser 
     }
 

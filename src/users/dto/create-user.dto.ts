@@ -13,4 +13,8 @@ export class CreateUserDto {
     @IsString({message: 'Должно быть строкой'})
     @Length(4, 16, {message: 'Не меньше 4 и не больше 6'})
     readonly password: string
+
+    
+    // a1eb4992-693f-4e3d-ad3e-88fdf9a4861b
+    readonly activationLink: string
 }

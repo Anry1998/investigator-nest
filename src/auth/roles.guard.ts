@@ -8,7 +8,7 @@ import { ROLES_KEY } from "./roles-auth.decorator";
 export class RolesGuard implements CanActivate {
     // когда функция возвращает фолс - доступ запрещен
     constructor (private jwtService: JwtService, 
-                private reflector: Reflector) {}
+                 private reflector: Reflector) {}
 
     canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
         

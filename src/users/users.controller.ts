@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -9,7 +9,6 @@ import { RolesGuard } from 'src/auth/roles.guard';
 import { AddRoleDto } from './dto/add-role.dto';
 import { BanUserDto } from './dto/ban-user.dto';
 // import {  } from 'src/pipes/validation.pipe';
-
 
 @ApiTags('Пользователи')
 
@@ -47,10 +46,19 @@ export class UsersController {
     @ApiOperation({summary: 'Выдать роль'})
     @ApiResponse({status: 200})
     // @Roles('ADMIN')
-    @UseGuards(RolesGuard)
+    // @UseGuards(RolesGuard)
     @Post('/role')
     addRole(@Body() dto: AddRoleDto) {
         return this.usersService.addRole(dto)
+    }
+
+    @ApiOperation({summary: 'Забрать роль'})
+    @ApiResponse({status: 200})
+    // @Roles('ADMIN')
+    @UseGuards(RolesGuard)
+    @Delete('/role')
+    delateRole(@Body() dto: AddRoleDto) {
+        return this.usersService.delateRole(dto)
     }
 
     @ApiOperation({summary: 'Забанить пользователя'})
@@ -67,8 +75,19 @@ export class UsersController {
     @ApiResponse({status: 200, type: User})
     @Delete(':id')
     // Если будет строка не формата UUID, выдаст ошибку
-    deleteUser(@Param('id', ParseUUIDPipe) id: string) {
+    deleteUser(@Param('id', ) id: string) {
+        // return id
         return this.usersService.deleteUser(id)
+    }
+
+
+    @ApiOperation({summary: 'Восстановить удаленного пользователя'})
+    @ApiResponse({status: 200})
+    @Put('restore')
+    // Если будет строка не формата UUID, выдаст ошибку
+    restoreUser(@Body() userDto: CreateUserDto) {
+        // return id
+        return this.usersService.restoreUser(userDto)
     }
 
 

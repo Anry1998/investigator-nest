@@ -6,11 +6,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { TokenService } from './token.service';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { Token } from './token.model';
+import { MailService } from './mail.service';
 
 
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, TokenService],
+  providers: [AuthService, TokenService, MailService],
   imports: [
     forwardRef(() => UsersModule),
     SequelizeModule.forFeature([Token]),

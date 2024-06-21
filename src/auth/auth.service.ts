@@ -2,15 +2,18 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt'
-import { User } from 'src/users/users.model';
+import * as uuid from 'uuid'
+
 import { TokenService } from './token.service';
-import { InjectModel } from '@nestjs/sequelize';
+import { MailService } from './mail.service';
+
 
 @Injectable()
 export class AuthService {
 
     constructor(private userService: UsersService,
-                private tokenService: TokenService) {}
+                private tokenService: TokenService,
+                private mailService: MailService) {}
 
     async registration(userDto: CreateUserDto) {
         const condidate = await this.userService.getUserByEmail(userDto.email)
@@ -18,7 +21,11 @@ export class AuthService {
             throw new HttpException(`Пользователь с таким email: ${userDto.email} уже существует`, HttpStatus.BAD_REQUEST)
         }
         const hashPassword = await bcrypt.hash(userDto.password, 5)
-        const user = await this.userService.createUser({...userDto, password: hashPassword})
+
+        const activationLink = uuid.v4()
+
+        const user = await this.userService.createUser({...userDto, password: hashPassword, activationLink: activationLink})
+        this.mailService.mailSendActivateLink(user.email, activationLink)
         // Сокращаю объект user, чтобы уменьшить размер токена
         const reduceUser = await this.userService.reduceUser(user.email)
         const tokens = await this.tokenService.generateTokens(reduceUser)
@@ -96,5 +103,8 @@ export class AuthService {
         const validateAccessToken = this.tokenService.validateAccessToken(token)
         return validateAccessToken
     }
+
+
+    
   
 }

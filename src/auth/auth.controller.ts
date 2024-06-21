@@ -1,19 +1,24 @@
-import { Body, Controller, Get, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
+import { ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { AuthService } from './auth.service';
-import { TokenService } from './token.service';
 import { Request, Response } from 'express';
-// import { ValidateAccessToken } from './dto/validateAccessToken';
+import { MailService } from './mail.service';
+import { UsersService } from 'src/users/users.service';
+
 
 @ApiTags('Авторизация')
 @Controller('auth')
 export class AuthController {
-    // Делаем инъекцию сервиса
+    // Делаем инъекцию сервисаs
     constructor(private authService: AuthService,
-                private tokenService: TokenService) {}
+                private userService: UsersService,
+                private mailService: MailService) {}
 
-    @Post('/registration')
+    @ApiOperation({summary: 'Регистрация пользователя, на'})
+    @ApiResponse({status: 200})
+    // @ApiCookieAuth('refreshToken')
+    @Post('registration')
     @UsePipes(new ValidationPipe())
     async registration(@Body() userDto: CreateUserDto,
                  @Res({ passthrough: true }) response: Response) {
@@ -24,7 +29,9 @@ export class AuthController {
         return registration
     }
 
-    @Post('/login')
+    @ApiOperation({summary: 'Авторизация пользователя'})
+    @ApiResponse({status: 200})
+    @Post('login')
     async login(@Body() userDto: CreateUserDto,
         @Res({ passthrough: true }) response: Response) {
 
@@ -33,12 +40,41 @@ export class AuthController {
         return login
     }
 
-    @Get('/refresh')
+    @ApiOperation({summary: 'Выход пользователя из аккаунта, в request приинимает cookies refreshToken'})
+    @ApiResponse({status: 200})
+    @Delete('logout') 
+    async logout(@Req() request: Request,
+                 @Res({ passthrough: true }) response: Response) {
+
+        const refresh = request.cookies['refreshToken']
+        const logout = await this.authService.logout(refresh)
+        response.clearCookie('refreshToken')
+         return request.cookies['refreshToken']
+    }
+
+    @Get('refresh')
     refresh(@Req() request: Request, 
             @Res({ passthrough: true }) response: Response) {
              
         const refresh = this.authService.refresh(request.cookies['refreshToken'])
         response.cookie('refreshToken', refresh, {maxAge:30*24*60*60*1000, httpOnly: true })
-        return refresh
+        return refresh 
     }   
+
+    @Get('activate/:link')
+    async activate(@Param('link') link: string) {
+             
+        const activate = await this.userService.activate(link)
+
+        return link
+    } 
+
+
+    // @Post('/mail')
+    //  mail(@Body() userMail: string, activationLink: string) {
+
+    //      const send =  this.mailService.mailSendActivateLink(userMail, activationLink)
+
+    //     return activationLink
+    // }
 }
